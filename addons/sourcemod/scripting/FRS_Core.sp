@@ -10,7 +10,7 @@
 public Plugin myinfo = 
 {
 	name		= "[FRS] Core",
-	version		= "1.0.8.1",
+	version		= "2.0",
 	description	= "Sync all Fake Ranks",
 	author		= "ღ λŌK0ЌЭŦ ღ ™",
 	url			= "https://hlmod.ru/"
@@ -159,41 +159,41 @@ public void OnPlayerRunCmdPost(int client, int iButtons)
 
 public void OnThinkPost(int iEnt)
 {   
-	// int id;
+	static int id;
 	for(int i = 1; i <= MaxClients; i++)	if(IsClientInGame(i) && GetClientTeam(i) > 1)
 	{
-		// if((id = iRegisterValue[i][meTime[i]]) > 0)
+		if((id = iRegisterValue[i][meTime[i]]) > 0)
 		{
-			SetEntData(iEnt, m_iCompetitiveRanking + i*4, iRegisterValue[i][meTime[i]]);
+			SetEntData(iEnt, m_iCompetitiveRanking + i*4, id);
 		}
 	}
-	
 } 
+
 public Action TimeTimer(Handle timer)
 {
-	int buffid[MAXPLAYERS+1];
-	for(int i = 1; i <= MaxClients; i++)
-		buffid[i] = meTime[i];
+	// int buffid[MAXPLAYERS+1];
+	// for(int i = 1; i <= MaxClients; i++)
+	// 	buffid[i] = meTime[i];
 
 	for(int i = 1; i <= MaxClients; i++)	if(IsValidPlayer(i))
 	{
 		do
 		{
-			if(buffid[i]++ >= MaxRanks-1)
-				buffid[i] = 0;
+			if(meTime[i]++ >= MaxRanks-1)
+				meTime[i] = 0;
 
-			if(!iRegisterValue[i][buffid[i]])
+			if(!iRegisterValue[i][meTime[i]])
 				continue;
 				
 			if(cType == 0)
 				break;
-			else if(cType == 1 && RegisterId[buffid[i]])
+			else if(cType == 1 && RegisterId[meTime[i]])
 				break;
 		}
-		while(buffid[i] < MaxRanks);
+		while(meTime[i] < MaxRanks);
 	} 
 
-	meTime = buffid;
+	// meTime = buffid;
 
 	// PushToKv();
 }
@@ -277,5 +277,5 @@ stock void PushToKv()
 
 stock bool IsValidPlayer(int client)
 {
-	return IsClientAuthorized(client) && IsClientInGame(client);
+	return IsClientAuthorized(client) && IsClientInGame(client) && IsClientConnected(client);
 }
