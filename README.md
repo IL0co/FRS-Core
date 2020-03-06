@@ -25,7 +25,7 @@
 ## Preview
 The delays are reasoned by the fact that cs go cannot update all the icons in one tick (default for csgo)
 
-<img src="https://i.imgur.com/YM3K7pX.gif" width="100%"> 
+<img src="https://i.imgur.com/QY79PQ5.gif" width="100%"> 
 
 
 # Installation 

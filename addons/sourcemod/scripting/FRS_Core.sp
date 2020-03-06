@@ -13,10 +13,8 @@ public Plugin myinfo =
 	version		= "2.0",
 	description	= "Sync all Fake Ranks",
 	author		= "ღ λŌK0ЌЭŦ ღ ™",
-	url			= "https://hlmod.ru/"
+	url			= "https://github.com/IL0co"
 }
-
-
 
 char RegisterKeys[MaxRanks][16];
 
@@ -41,12 +39,7 @@ ConVar 	cvar_Time,
 
 public void OnPluginStart()
 {
-	if(GetEngineVersion() != Engine_CSGO) 
-		SetFailState("[FakeRank Sync] This plugin works only on CS:GO");
-
 	LoadForwards();
-
-	// CreateTimer(5.0, TimerOut, _, TIMER_REPEAT);
 	
 	(cvar_Time = CreateConVar("sm_sync_time", "2.0", "RU: Время смены одной иконки на другую \n EN: Time for changing one icon to another", _, true, 0.1)).AddChangeHook(OnVarChanged);
 	cTime = cvar_Time.FloatValue;
@@ -72,6 +65,7 @@ public void OnPluginStart()
 
 public Action Cmd_SnapShot(int client, int args)
 {	
+	ReplyToCommand(client, "Снапшот успешно создан!");
 	PushToKv();
 	return Plugin_Handled;
 }
@@ -135,49 +129,30 @@ public Action OnClientLoaded(Handle timer, any client)
 	Call_Finish();
 }
 
-// public Action TimerOut(Handle timer)
-// {
-// 	for(int i = 1; i <= MaxClients; i++)	if(IsValidPlayer(i))
-// 	{
-// 		StartMessageOne("ServerRankRevealAll", i, USERMSG_BLOCKHOOKS);
-// 		EndMessage();
-// 	}
-// }
-
-public void OnPlayerRunCmdPost(int client, int iButtons)
+public void OnPlayerRunCmdPost(int client, int buttons)
 {
-	static bool no_score[MAXPLAYERS+1];
-
-	if(iButtons & IN_SCORE && no_score[client])
+	if(buttons & IN_SCORE)
 	{
 		StartMessageOne("ServerRankRevealAll", client, USERMSG_BLOCKHOOKS);
 		EndMessage();
 	}
-
-	no_score[client] = !(iButtons & IN_SCORE);
 }
 
 public void OnThinkPost(int iEnt)
 {   
 	static int id;
-	for(int i = 1; i <= MaxClients; i++)	if(IsClientInGame(i) && GetClientTeam(i) > 1)
+
+	for(int i = 1; i <= MaxClients; i++)	if((id = iRegisterValue[i][meTime[i]]) > 0)
 	{
-		if((id = iRegisterValue[i][meTime[i]]) > 0)
-		{
-			SetEntData(iEnt, m_iCompetitiveRanking + i*4, id);
-		}
+		SetEntData(iEnt, m_iCompetitiveRanking + i*4, id);
 	}
 } 
 
 public Action TimeTimer(Handle timer)
 {
-	// int buffid[MAXPLAYERS+1];
-	// for(int i = 1; i <= MaxClients; i++)
-	// 	buffid[i] = meTime[i];
-
 	for(int i = 1; i <= MaxClients; i++)	if(IsValidPlayer(i))
 	{
-		do
+		for(int poss = 0; poss < MaxRanks; poss++)
 		{
 			if(meTime[i]++ >= MaxRanks-1)
 				meTime[i] = 0;
@@ -185,17 +160,10 @@ public Action TimeTimer(Handle timer)
 			if(!iRegisterValue[i][meTime[i]])
 				continue;
 				
-			if(cType == 0)
-				break;
-			else if(cType == 1 && RegisterId[meTime[i]])
+			if(cType == 0 || cType == 1 && RegisterId[meTime[i]])
 				break;
 		}
-		while(meTime[i] < MaxRanks);
 	} 
-
-	// meTime = buffid;
-
-	// PushToKv();
 }
 
 stock void RestartTimer()
@@ -241,7 +209,7 @@ stock void PushToKv()
 {
 	KeyValues kv = new KeyValues("fakeranks");
 
-	char buff[3];
+	char name[32];
 
 	if(kv.JumpToKey("Register", true))
 	{
@@ -253,9 +221,9 @@ stock void PushToKv()
 	kv.JumpToKey("Clients", true);
 	for(int i = 1; i <= MaxClients; i++)	if(IsValidPlayer(i))
 	{
-		Format(buff, sizeof(buff), "%L", i);
+		Format(name, sizeof(name), "%L", i);
 		kv.SavePosition();
-		if(kv.JumpToKey(buff, true))
+		if(kv.JumpToKey(name, true))
 		{
 			for(int poss = 0; poss < MaxRanks; poss++)	if(RegisterKeys[poss][0] && RegisterId[poss])
 				kv.SetNum(RegisterKeys[poss], iRegisterValue[i][poss]);
@@ -270,12 +238,12 @@ stock void PushToKv()
 	}
 
 	kv.Rewind();
-	kv.ExportToFile("addons/sourcemod/logs/fakerank.txt");
+	kv.ExportToFile("addons/sourcemod/logs/fakerank_snapshot.txt");
 	
 	delete kv;
 }
 
 stock bool IsValidPlayer(int client)
 {
-	return IsClientAuthorized(client) && IsClientInGame(client) && IsClientConnected(client);
+	return IsClientAuthorized(client) && IsClientInGame(client) && GetClientTeam(client) > 1;
 }
