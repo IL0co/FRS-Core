@@ -25,7 +25,7 @@
 ## Preview
 The delays are reasoned by the fact that cs go cannot update all the icons in one tick (default for csgo)
 
-<img src="https://i.imgur.com/QY79PQ5.gif" width="100%"> 
+<img src="https://i.imgur.com/37sJDhB.gif" width="46.5%">  <img src="https://i.imgur.com/NCRtPRJ.gif" width="45%">  
 
 
 # Installation 
@@ -54,9 +54,3 @@ Just make a [pull request](../../pulls).
 ## Feedback (support the author a pretty penny!)
 * [Telegram](https://t.me/LocoCat)
 
-
-# Changed Log
-2.0
-``` bash
-1. Release
-```
