@@ -10,7 +10,7 @@
 public Plugin myinfo = 
 {
 	name		= "[FRS] Core",
-	version		= "2.0",
+	version		= "2.1",
 	description	= "Sync all Fake Ranks",
 	author		= "ღ λŌK0ЌЭŦ ღ ™",
 	url			= "https://github.com/IL0co"
@@ -222,11 +222,7 @@ public Action Timer_GenerageId(Handle timer)
 					break;
 			}
 		}
-
-		PrintToConsole(i, "y cycle == %i = %i", meTime[i], iRegisterValue[i][meTime[i]]);
 	} 
-
-	PrintToConsoleAll("cycle == %i ", cycle);
 }
 
 stock void RestartTimer()
