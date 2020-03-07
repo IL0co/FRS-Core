@@ -21,7 +21,9 @@ char RegisterKeys[MaxRanks][16];
 int RegisterId[MaxRanks],
 	iRegisterValue[MAXPLAYERS+1][MaxRanks];	
 
+bool iIsScore[MAXPLAYERS+1];
 int meTime[MAXPLAYERS+1];
+int cycle;
 
 Handle AllTimer;
 int m_iCompetitiveRanking;
@@ -29,13 +31,15 @@ int m_iCompetitiveRanking;
 float cTime; 	
 int   cSort, cType;
 char cPrior[MaxRanks][16];		
-
-#include "fakerank_sync/api.sp"
+bool cUpdateMode;
  
 ConVar 	cvar_Time,
 		cvar_Sort,
+		cvar_UpdateMode,
 		cvar_Type,
 		cvar_Priority;
+
+#include "fakerank_sync/api.sp"
 
 public void OnPluginStart()
 {
@@ -49,6 +53,9 @@ public void OnPluginStart()
 
 	(cvar_Type  = CreateConVar("sm_sync_type", "0", "RU: Тип отображения: 0 - отображать предыдущее при нулях; 1 - пропускать нули (покажет следущую иконку) \nEN: Display Type: 0 - display the previous one at zeros; 1 - skip zeros (will show the next icon)", _, true, 0.0, true, 1.0)).AddChangeHook(OnVarChanged);
 	cType = cvar_Type.IntValue;
+
+	(cvar_UpdateMode  = CreateConVar("sm_sync_update_mode", "0", "RU: Режим обновления когда смотришь в таб. 0 - \"плавно\"; 1 - резко) \n EN: Update mode when you look at tab. 0 - \"smoothly \"; 1 - sharply", _, true, 0.0, true, 1.0)).AddChangeHook(OnVarChanged);
+	cUpdateMode = cvar_UpdateMode.BoolValue;
 
 	(cvar_Priority = CreateConVar("sm_sync_priority", "vip;shop", "RU: Приоритет отображения, чем первее в строке, тем выше приоритет \nEN: Display priority, the first in the line, the higher the priority")).AddChangeHook(OnVarChanged);
 	ProcessCvarPriority(cvar_Priority);
@@ -65,7 +72,7 @@ public void OnPluginStart()
 
 public Action Cmd_SnapShot(int client, int args)
 {	
-	ReplyToCommand(client, "Снапшот успешно создан!");
+	ReplyToCommand(client, "Snapshot successfully created!");
 	PushToKv();
 	return Plugin_Handled;
 }
@@ -74,6 +81,8 @@ public void OnVarChanged(ConVar cvar, const char[] oldValue, const char[] newVal
 {
 	if(cvar == cvar_Type)	
 		cType = cvar.IntValue;
+	else if(cvar == cvar_UpdateMode)	
+		cUpdateMode = cvar.BoolValue;
 
 	else if(cvar == cvar_Sort)
 	{
@@ -116,6 +125,7 @@ public void OnClientPostAdminCheck(int client)
 		meTime[client] = meTime[i];
 		break;
 	}
+	// meTime[client] = cycle;
 
 	CreateTimer(1.0, OnClientLoaded, GetClientUserId(client));
 }
@@ -129,41 +139,94 @@ public Action OnClientLoaded(Handle timer, any client)
 	Call_Finish();
 }
 
-public void OnPlayerRunCmdPost(int client, int buttons)
+public void OnPlayerRunCmdPost(int client, int iButtons)
 {
-	if(buttons & IN_SCORE)
+	static bool no_score[MAXPLAYERS+1];
+
+	if(iButtons & IN_SCORE) 
 	{
-		StartMessageOne("ServerRankRevealAll", client, USERMSG_BLOCKHOOKS);
-		EndMessage();
+		if(no_score[client])
+		{
+			if(!cUpdateMode)
+			{
+				StartMessageOne("ServerRankRevealAll", client, USERMSG_BLOCKHOOKS);
+				EndMessage();
+			}
+
+			iIsScore[client] = true;
+		}
 	}
+	else if(iIsScore[client])
+	{
+		iIsScore[client] = false;
+	}
+	
+
+	no_score[client] = !(iButtons & IN_SCORE);
 }
 
 public void OnThinkPost(int iEnt)
 {   
-	static int id;
+	static int Id, oldId[MAXPLAYERS+1];
 
-	for(int i = 1; i <= MaxClients; i++)	if((id = iRegisterValue[i][meTime[i]]) > 0)
+	for(int i = 1; i <= MaxClients; i++)	
 	{
-		SetEntData(iEnt, m_iCompetitiveRanking + i*4, id);
+		if(!IsValidPlayer(i))
+			continue;
+
+		if((Id = iRegisterValue[i][meTime[i]]) <= 0)
+			Id = oldId[i];
+
+		SetEntData(iEnt, m_iCompetitiveRanking + i*4, Id);
+
+		oldId[i] = Id;
+
+		if(cUpdateMode && iIsScore[i])
+		{
+			StartMessageOne("ServerRankRevealAll", i, USERMSG_BLOCKHOOKS);
+			EndMessage();
+		}
 	}
 } 
 
-public Action TimeTimer(Handle timer)
+public Action Timer_GenerageId(Handle timer)
 {
+	for(int poss = 0; poss < MaxRanks; poss++)
+	{
+		if(cycle++ >= MaxRanks-1)
+			cycle = 0;
+
+		if(!RegisterId[cycle])
+			continue;
+			
+		if(cType == 0 || cType == 1 && RegisterId[cycle])
+			break;
+	}
+
 	for(int i = 1; i <= MaxClients; i++)	if(IsValidPlayer(i))
 	{
-		for(int poss = 0; poss < MaxRanks; poss++)
+		if(cType == 0)
+			meTime[i] = cycle;
+ 
+		else if(cType == 1)
 		{
-			if(meTime[i]++ >= MaxRanks-1)
-				meTime[i] = 0;
+			for(int poss = 0; poss < MaxRanks; poss++)
+			{
+				if(meTime[i]++ >= MaxRanks-1)
+					meTime[i] = 0;
 
-			if(!iRegisterValue[i][meTime[i]])
-				continue;
+				if(!RegisterId[meTime[i]])
+					continue;
 				
-			if(cType == 0 || cType == 1 && RegisterId[meTime[i]])
-				break;
+				if(iRegisterValue[i][meTime[i]])
+					break;
+			}
 		}
+
+		PrintToConsole(i, "y cycle == %i = %i", meTime[i], iRegisterValue[i][meTime[i]]);
 	} 
+
+	PrintToConsoleAll("cycle == %i ", cycle);
 }
 
 stock void RestartTimer()
@@ -172,7 +235,7 @@ stock void RestartTimer()
 		meTime[i] = 0;
 
 	if(AllTimer) delete AllTimer;
-	AllTimer = CreateTimer(cTime, TimeTimer, _, TIMER_REPEAT);	
+	AllTimer = CreateTimer(cTime, Timer_GenerageId, _, TIMER_REPEAT);	
 }
 
 stock void ProcessCvarPriority(ConVar cvar)
@@ -213,26 +276,36 @@ stock void PushToKv()
 
 	if(kv.JumpToKey("Register", true))
 	{
-		for(int poss = 0; poss < MaxRanks; poss++)	if(RegisterKeys[poss][0])
-			kv.SetNum(RegisterKeys[poss], RegisterId[poss]);
+		for(int poss = 0; poss < MaxRanks; poss++)
+		{
+			Format(name, sizeof(name), "%i = %s", poss, RegisterKeys[poss][0] ? RegisterKeys[poss] : "NONE");
+			kv.SetNum(name, RegisterId[poss]);
+		}
 	}
 	kv.Rewind();
 
 	kv.JumpToKey("Clients", true);
+	int allCount;
+
+	for(int i = 1; i <= MaxClients; i++)	if(IsValidPlayer(i))	
+		allCount++;
+
+	kv.SetNum("ALL PLAYERS COUNT", allCount);
+	
+
 	for(int i = 1; i <= MaxClients; i++)	if(IsValidPlayer(i))
 	{
 		Format(name, sizeof(name), "%L", i);
 		kv.SavePosition();
 		if(kv.JumpToKey(name, true))
 		{
-			for(int poss = 0; poss < MaxRanks; poss++)	if(RegisterKeys[poss][0] && RegisterId[poss])
-				kv.SetNum(RegisterKeys[poss], iRegisterValue[i][poss]);
-
 			int count = 0;
 			for(int poss = 0; poss < MaxRanks; poss++)	if(RegisterId[poss])
 				count++;
+			kv.SetNum("MY RANK ALL COUNT", count);
 
-			kv.SetNum("Rank count", count);
+			for(int poss = 0; poss < MaxRanks; poss++)	if(RegisterKeys[poss][0] && RegisterId[poss])
+				kv.SetNum(RegisterKeys[poss], iRegisterValue[i][poss]);
 		}
 		kv.GoBack();
 	}
@@ -245,5 +318,5 @@ stock void PushToKv()
 
 stock bool IsValidPlayer(int client)
 {
-	return IsClientAuthorized(client) && IsClientInGame(client) && GetClientTeam(client) > 1;
+	return IsClientAuthorized(client) && IsClientConnected(client);
 }

@@ -35,9 +35,9 @@ native void FRS_UnRegisterMe();
  *	-
  * @param client 	        Индекс игрока.		
  * @param rankId 	        id таблички ранга.	
- * @param key 	          Ключ.	
+ * @param key 	          	Ключ.	
  *  -
- * @return	              true при удаче, или же false            
+ * @return	             	true при удаче, или же false            
 */
 native void FRS_SetClientRankId(int client, int rankId, char[] key);
 
@@ -59,6 +59,19 @@ forward void FRS_OnClientLoaded(int client);
 */
 forward void FRS_OnCoreLoaded();
 
+
+public SharedPlugin __pl_FRS = 
+{
+	name = "FRS_Core",
+	file = "FRS_Core.smx",
+
+	#if defined REQUIRE_PLUGIN
+		required = 1
+	#else
+		required = 0
+	#endif
+};
+
 #if !defined REQUIRE_PLUGIN
 public void __pl_FRS_SetNTVOptional()
 {
@@ -66,5 +79,6 @@ public void __pl_FRS_SetNTVOptional()
 	MarkNativeAsOptional("FRS_RegisterKey");
 	MarkNativeAsOptional("FRS_UnRegisterMe");
 	MarkNativeAsOptional("FRS_SetClientRankId");
+	PrintToServer("MarkNativeAsOptional");
 }
 #endif

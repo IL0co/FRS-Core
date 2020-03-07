@@ -1,5 +1,5 @@
-Handle 	forward_OnClientLoaded,
-		forward_OnCoreLoaded;
+GlobalForward 	forward_OnClientLoaded,
+				forward_OnCoreLoaded;
 
 public void OnAllPluginsLoaded()
 {
@@ -8,12 +8,19 @@ public void OnAllPluginsLoaded()
 }
 public void LoadForwards()
 {
-	forward_OnClientLoaded = CreateGlobalForward("FRS_OnClientLoaded", ET_Ignore, Param_Cell);
-	forward_OnCoreLoaded = CreateGlobalForward("FRS_OnCoreLoaded", ET_Ignore);
+	forward_OnClientLoaded = new GlobalForward("FRS_OnClientLoaded", ET_Ignore, Param_Cell);
+	forward_OnCoreLoaded = new GlobalForward("FRS_OnCoreLoaded", ET_Ignore);
 }
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {	
+
+	if(GetEngineVersion() != Engine_CSGO)
+	{
+		strcopy(error, err_max, "This plugin works only on CS:GO");
+		return APLRes_SilentFailure;
+	}
+
 	CreateNative("FRS_RemoveKey", Native_RemoveKey);
 	CreateNative("FRS_RegisterKey", Native_RegisterKey);
 	CreateNative("FRS_UnRegisterMe", Native_UnRegisterMe);
@@ -23,7 +30,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	return APLRes_Success;
 }
 
-public int Native_RemoveKey(Handle plugin, int numParams)
+int Native_RemoveKey(Handle plugin, int numParams)
 {
 	char key[16]; 
 	GetNativeString(1, key, sizeof(key));
@@ -39,7 +46,7 @@ public int Native_RemoveKey(Handle plugin, int numParams)
 	return false;
 }
 
-public int Native_RegisterKey(Handle plugin, int numParams)
+int Native_RegisterKey(Handle plugin, int numParams)
 {
 	char key[16]; 
 	GetNativeString(1, key, sizeof(key));
@@ -63,7 +70,7 @@ public int Native_RegisterKey(Handle plugin, int numParams)
 	return false;
 }
 
-public int Native_UnRegisterMe(Handle plugin, int numParams)
+int Native_UnRegisterMe(Handle plugin, int numParams)
 {
 	for(int poss = 0; poss < MaxRanks; poss++)	if(RegisterId[poss] == view_as<int>(plugin))
 	{
@@ -78,7 +85,7 @@ public int Native_UnRegisterMe(Handle plugin, int numParams)
 	}
 }
 	
-public int Native_SetClientRankId(Handle plugin, int numParams)
+int Native_SetClientRankId(Handle plugin, int numParams)
 {
 	int client = GetNativeCell(1);
 	int RankId = GetNativeCell(2);
