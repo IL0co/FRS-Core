@@ -59,19 +59,6 @@ forward void FRS_OnClientLoaded(int client);
 */
 forward void FRS_OnCoreLoaded();
 
-
-public SharedPlugin __pl_FRS = 
-{
-	name = "FRS_Core",
-	file = "FRS_Core.smx",
-
-	#if defined REQUIRE_PLUGIN
-		required = 1
-	#else
-		required = 0
-	#endif
-};
-
 #if !defined REQUIRE_PLUGIN
 public void __pl_FRS_SetNTVOptional()
 {
