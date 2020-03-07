@@ -268,7 +268,7 @@ stock void PushToKv()
 {
 	KeyValues kv = new KeyValues("fakeranks");
 
-	char name[32];
+	char name[64];
 
 	if(kv.JumpToKey("Register", true))
 	{
