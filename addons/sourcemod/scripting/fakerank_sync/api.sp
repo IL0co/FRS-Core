@@ -39,6 +39,13 @@ int Native_RemoveKey(Handle plugin, int numParams)
 	{
 		RegisterKeys[poss][0] = '\0';
 		RegisterId[poss] = 0;
+		
+		for(int i = 1; i <= MaxClients; i++) 	if(IsValidPlayer(i))
+		{
+			iRegisterValue[i][poss] = 0;
+			GetMyCount(i);
+		}
+		
 
 		return true;
 	}
@@ -81,7 +88,11 @@ int Native_UnRegisterMe(Handle plugin, int numParams)
 	for(int i = 1; i <= MaxClients; i++) if(IsValidPlayer(i))
 	{
 		for(int poss = 0; poss < MaxRanks; poss++)	if(!RegisterKeys[poss][0])
+		{
 			iRegisterValue[i][poss] = 0;
+		}
+		
+		GetMyCount(i);
 	}
 }
 	
@@ -94,5 +105,21 @@ int Native_SetClientRankId(Handle plugin, int numParams)
 	GetNativeString(3, key, sizeof(key));
 
 	for(int poss = 0; poss < MaxRanks; poss++)	if(strcmp(key, RegisterKeys[poss], false) == 0)
+	{
 		iRegisterValue[client][poss] = RankId;
+
+		if(RankId)
+			iCount[client] += 1;
+		else
+			iCount[client] -= 1;
+	}
+
+	GetMyCount(client);
+}
+
+stock void GetMyCount(int client)
+{
+	iCount[client] = 0;
+	for(int poss = 0; poss < MaxRanks; poss++)	if(iRegisterValue[client][poss])
+		iCount[client]++;
 }

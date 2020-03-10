@@ -10,7 +10,7 @@
 public Plugin myinfo = 
 {
 	name		= "[FRS] Core",
-	version		= "2.1",
+	version		= "2.2",
 	description	= "Sync all Fake Ranks",
 	author		= "ღ λŌK0ЌЭŦ ღ ™",
 	url			= "https://github.com/IL0co"
@@ -19,7 +19,8 @@ public Plugin myinfo =
 char RegisterKeys[MaxRanks][16];
 
 int RegisterId[MaxRanks],
-	iRegisterValue[MAXPLAYERS+1][MaxRanks];	
+	iRegisterValue[MAXPLAYERS+1][MaxRanks],
+	iCount[MAXPLAYERS+1];	
 
 bool iIsScore[MAXPLAYERS+1];
 int meTime[MAXPLAYERS+1];
@@ -48,7 +49,7 @@ public void OnPluginStart()
 	(cvar_Time = CreateConVar("sm_sync_time", "2.0", "RU: Время смены одной иконки на другую \n EN: Time for changing one icon to another", _, true, 0.1)).AddChangeHook(OnVarChanged);
 	cTime = cvar_Time.FloatValue;
 
-	(cvar_Sort  = CreateConVar("sm_sync_sort", "0", "RU: Тип сортировки: 0 - нету; 1 - по приоритетам; 2 - рандом \nEN: Type of sorting: 0 - no; 1 - by priority; 2 - random", _, true, 0.0, true, 2.0)).AddChangeHook(OnVarChanged);
+	(cvar_Sort  = CreateConVar("sm_sync_sort", "0", "RU: Тип сортировки: 0 - нету; 1 - по приоритетам \nEN: Type of sorting: 0 - no; 1 - by priority", _, true, 0.0, true, 1.0)).AddChangeHook(OnVarChanged);
 	cSort = cvar_Sort.IntValue;
 
 	(cvar_Type  = CreateConVar("sm_sync_type", "0", "RU: Тип отображения: 0 - отображать предыдущее при нулях; 1 - пропускать нули (покажет следущую иконку) \nEN: Display Type: 0 - display the previous one at zeros; 1 - skip zeros (will show the next icon)", _, true, 0.0, true, 1.0)).AddChangeHook(OnVarChanged);
@@ -88,6 +89,7 @@ public void OnVarChanged(ConVar cvar, const char[] oldValue, const char[] newVal
 	{
 		cSort = cvar.IntValue;
 
+		ClearRegister();
 		ReloadListToPriorityMode();
 	}
 
@@ -116,14 +118,19 @@ public void OnClientPostAdminCheck(int client)
 {
 	if(!IsValidPlayer(client))
 		return;
+	
+	iCount[client] = 0;
 
 	for(int poss = 0; poss < MaxRanks; poss++)
 		iRegisterValue[client][poss] = 0;
 
-	for(int i = 1; i <= MaxClients; i++)	if(client != i && IsValidPlayer(i))
+	if(cSort != 1)
 	{
-		meTime[client] = meTime[i];
-		break;
+		for(int i = 1; i <= MaxClients; i++)	if(client != i && IsValidPlayer(i))
+		{
+			meTime[client] = meTime[i];
+			break;
+		}
 	}
 	// meTime[client] = cycle;
 
@@ -174,6 +181,9 @@ public void OnThinkPost(int iEnt)
 		if(!IsValidPlayer(i))
 			continue;
 
+		if(!iCount[i])
+			oldId[i] = 0;
+
 		if((Id = iRegisterValue[i][meTime[i]]) <= 0)
 			Id = oldId[i];
 
@@ -191,38 +201,52 @@ public void OnThinkPost(int iEnt)
 
 public Action Timer_GenerageId(Handle timer)
 {
-	for(int poss = 0; poss < MaxRanks; poss++)
+	if(cSort == 1)
 	{
-		if(cycle++ >= MaxRanks-1)
-			cycle = 0;
-
-		if(!RegisterId[cycle])
-			continue;
-			
-		if(cType == 0 || cType == 1 && RegisterId[cycle])
-			break;
-	}
-
-	for(int i = 1; i <= MaxClients; i++)	if(IsValidPlayer(i))
-	{
-		if(cType == 0)
-			meTime[i] = cycle;
- 
-		else if(cType == 1)
+		for(int i = 1; i <= MaxClients; i++)	if(IsValidPlayer(i))
 		{
-			for(int poss = 0; poss < MaxRanks; poss++)
+			for(int poss = 0; poss < MaxRanks; poss++)	if(iRegisterValue[i][poss]) 
 			{
-				if(meTime[i]++ >= MaxRanks-1)
-					meTime[i] = 0;
-
-				if(!RegisterId[meTime[i]])
-					continue;
-				
-				if(iRegisterValue[i][meTime[i]])
-					break;
+				meTime[i] = poss;
+				break;
 			}
+		} 
+	}
+	else
+	{
+		for(int poss = 0; poss < MaxRanks; poss++)
+		{
+			if(cycle++ >= MaxRanks-1)
+				cycle = 0;
+
+			if(!RegisterId[cycle])
+				continue;
+				
+			if(cType == 0 || cType == 1 && RegisterId[cycle])
+				break;
 		}
-	} 
+
+		for(int i = 1; i <= MaxClients; i++)	if(IsValidPlayer(i))
+		{
+			if(cType == 0)
+				meTime[i] = cycle;
+	
+			else if(cType == 1)
+			{
+				for(int poss = 0; poss < MaxRanks; poss++)
+				{
+					if(meTime[i]++ >= MaxRanks-1)
+						meTime[i] = 0;
+
+					if(!RegisterId[meTime[i]])
+						continue;
+					
+					if(iRegisterValue[i][meTime[i]])
+						break;
+				}
+			}
+		} 
+	}
 }
 
 stock void RestartTimer()
@@ -238,30 +262,30 @@ stock void ProcessCvarPriority(ConVar cvar)
 {
 	char sBuffer[10];
 	cvar.GetString(sBuffer, sizeof(sBuffer));
-	
+
+	ClearRegister();
+
 	TrimString(sBuffer);
-	ExplodeString(sBuffer, ";", cPrior, sizeof(cPrior), sizeof(cPrior[]));
+	ExplodeString(sBuffer, ";", RegisterKeys, sizeof(RegisterKeys), sizeof(RegisterKeys[]));
 
 	ReloadListToPriorityMode();
 }
 
 stock void ReloadListToPriorityMode()
 {
-	if(cSort == 1)
-	{
-		for(int poss = 0; poss < sizeof(cPrior); poss++) if(cPrior[poss][0])
-			Format(RegisterKeys[poss], sizeof(RegisterKeys), cPrior[poss]);
-	}
-
-	else if(cSort == 2)
-	{
-		SortStrings(RegisterKeys, sizeof(RegisterKeys), Sort_Random);
-	}
-
 	OnAllPluginsLoaded();
 
 	for(int i = 1; i <= MaxClients; i++) if(IsValidPlayer(i))
 		OnClientPostAdminCheck(i);
+}
+
+stock void ClearRegister()
+{
+	for(int poss = 0; poss < sizeof(cPrior); poss++)
+		{
+			RegisterKeys[poss][0] = '\0';
+			RegisterId[poss] = 0;
+		}
 }
 
 stock void PushToKv()
@@ -295,10 +319,7 @@ stock void PushToKv()
 		kv.SavePosition();
 		if(kv.JumpToKey(name, true))
 		{
-			int count = 0;
-			for(int poss = 0; poss < MaxRanks; poss++)	if(RegisterId[poss])
-				count++;
-			kv.SetNum("MY RANK ALL COUNT", count);
+			kv.SetNum("MY RANK ALL COUNT", iCount[i]);
 
 			for(int poss = 0; poss < MaxRanks; poss++)	if(RegisterKeys[poss][0] && RegisterId[poss])
 				kv.SetNum(RegisterKeys[poss], iRegisterValue[i][poss]);
