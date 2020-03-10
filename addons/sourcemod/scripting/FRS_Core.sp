@@ -10,7 +10,7 @@
 public Plugin myinfo = 
 {
 	name		= "[FRS] Core",
-	version		= "2.2",
+	version		= "2.1",
 	description	= "Sync all Fake Ranks",
 	author		= "ღ λŌK0ЌЭŦ ღ ™",
 	url			= "https://github.com/IL0co"
