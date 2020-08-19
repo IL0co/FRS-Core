@@ -3,6 +3,12 @@
 #endif
 #define _FRS_included_
 
+enum eSides
+{
+	Left = 0,			// Слева, возле иконки игрока
+	Right = 1			// Справа, возле количества денег
+};
+
 /*
  * Зарегестрировать данный плагин и его ключ (только один на плагин)
  *	-
@@ -36,10 +42,11 @@ native void FRS_UnRegisterMe();
  * @param client 	        Индекс игрока.		
  * @param rankId 	        id таблички ранга.	
  * @param key 	          	Ключ.	
+ * @param side 	          	Сторона, к которой будет относится табличка.	
  *  -
  * @return	             	true при удаче, или же false            
 */
-native void FRS_SetClientRankId(int client, int rankId, char[] key);
+native void FRS_SetClientRankId(int client, int rankId, char[] key, eSides side = Right);
 
 /*
  * Вызывается когда игрок был загружен.

@@ -42,7 +42,8 @@ int Native_RemoveKey(Handle plugin, int numParams)
 		
 		for(int i = 1; i <= MaxClients; i++) 	if(IsValidPlayer(i))
 		{
-			iRegisterValue[i][poss] = 0;
+			iRegisterValue[i][poss][Right] = 0;
+			iRegisterValue[i][poss][Left] = 0;
 			GetMyCount(i);
 		}
 		
@@ -88,7 +89,10 @@ int Native_UnRegisterMe(Handle plugin, int numParams)
 	for(int i = 1; i <= MaxClients; i++) if(IsValidPlayer(i))
 	{
 		for(int poss = 0; poss < MaxRanks; poss++)	if(!RegisterKeys[poss][0])
-			iRegisterValue[i][poss] = 0;
+		{
+			iRegisterValue[i][poss][Right] = 0;
+			iRegisterValue[i][poss][Left] = 0;
+		}
 		
 		GetMyCount(i);
 	}
@@ -98,19 +102,27 @@ int Native_SetClientRankId(Handle plugin, int numParams)
 {
 	int client = GetNativeCell(1);
 	int RankId = GetNativeCell(2);
-
 	char key[16];
 	GetNativeString(3, key, sizeof(key));
+	eSides Side = GetNativeCell(4);
 
 	for(int poss = 0; poss < MaxRanks; poss++)	if(strcmp(key, RegisterKeys[poss], false) == 0)
-		iRegisterValue[client][poss] = RankId;
+		iRegisterValue[client][poss][Side] = RankId;
 
 	GetMyCount(client);
 }
 
 stock void GetMyCount(int client)
 {
-	iCount[client] = 0;
-	for(int poss = 0; poss < MaxRanks; poss++)	if(iRegisterValue[client][poss])
-		iCount[client]++;
+	iCount[client][Right] = 0;
+	iCount[client][Left] = 0;
+
+	for(int poss = 0; poss < MaxRanks; poss++)
+	{
+		if(iRegisterValue[client][poss][Right])	
+			iCount[client][Right]++;		
+			
+		if(iRegisterValue[client][poss][Right])	
+			iCount[client][Left]++;
+	}
 }
