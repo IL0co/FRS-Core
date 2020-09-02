@@ -219,7 +219,7 @@ public void OnThinkPost(int iEnt)
 	{
 		if(!IsValidPlayer(i))
 			continue;
-		
+
 		if(!iCount[i][Right])
 			SetEntData(iEnt, m_iCompetitiveRanking + i*4, 0);
 		else

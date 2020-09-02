@@ -122,7 +122,7 @@ stock void GetMyCount(int client)
 		if(iRegisterValue[client][poss][Right])	
 			iCount[client][Right]++;		
 			
-		if(iRegisterValue[client][poss][Right])	
+		if(iRegisterValue[client][poss][Left])	
 			iCount[client][Left]++;
 	}
 }
